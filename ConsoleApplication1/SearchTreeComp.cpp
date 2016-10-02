@@ -16,7 +16,7 @@
 
 using namespace std;
 
-DynamicSearchTreeComp::DynamicSearchTreeComp(enum SearchAlgorithm pSearchType)
+DynamicSearchTreeComp::DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType)
 {
   aInternalError = 0;
   aCurrentTreeDepth = 0;
@@ -24,6 +24,7 @@ DynamicSearchTreeComp::DynamicSearchTreeComp(enum SearchAlgorithm pSearchType)
   aRoot = nullptr;
 
   aSearchType = pSearchType;
+  aHeuristicType = pHeuristicType;
 
   aIOProcessor = new InputOutputFileProcessor();
   aHeuristicComp = new HeuristicComp(); 
@@ -44,12 +45,11 @@ int DynamicSearchTreeComp::mGenerateDynamicTreeAndSearch() {
   if (aInternalError == 0)
   {
     DynamicSearchTreeNode* aCurrentNode;
-    ofstream fout("output.txt");
 
     cout << " Dynamic Search and Tree Generation is Starting ..." << "\n\n";
 
-    while (aOpenStack.size() > 0) {
-        
+    while (aOpenStack.size() > 0) 
+    {
       aCurrentNode = aOpenStack.front(); aOpenStack.erase(aOpenStack.begin());
       aInternalError = mInsertBranches(aCurrentNode);
 
@@ -75,17 +75,8 @@ int DynamicSearchTreeComp::mGenerateDynamicTreeAndSearch() {
 void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
 
   DynamicSearchTreeNode* aRootNode = new DynamicSearchTreeNode;
+ 
   aRootNode->aNodeHeuristics.aDepthCost = 1;
-
-  if (aSearchType == SearchAlgorithm::AStarSearch)
-  {
-    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
-  }
-  else if (aSearchType == SearchAlgorithm::BreadthFirstSearch)
-  {
-    aRootNode->aNodeHeuristics.aCost = aRootNode->aNodeHeuristics.aDepthCost;
-  }
-
   for (int i = 0; i < (signed)state.size(); i++)
   {
     aRootNode->aCurrentState.push_back(state[i]);
@@ -95,7 +86,20 @@ void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
       aRootNode->aNodeHeuristics.aIndex = i;
     }
   }
-  
+
+  if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MisplacedTiles)
+  {
+    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
+  }
+  else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::ManhattanDistance)
+  {
+    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
+  }
+  else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
+  {
+    aRootNode->aNodeHeuristics.aCost = aRootNode->aNodeHeuristics.aDepthCost;
+  }
+
   std::fill(aRootNode->aChildren.begin(), aRootNode->aChildren.end(), nullptr);
   aRootNode->aParentNode = nullptr;
 
@@ -123,7 +127,7 @@ int DynamicSearchTreeComp::mInsertBranches(DynamicSearchTreeNode* pCurrentNode)
   lMoveUp.join(); lMoveDown.join(); lMoveRight.join(); lMoveLeft.join(); 
 
   lError = mConfirmMoves(pCurrentNode, lFirstChild, lSecondChild, lThirdChild, lFourthChild);
-  lError = aHeuristicComp->mSortOpenStackForSearchType(aOpenStack); // look at this later
+  lError = aHeuristicComp->mSortOpenStackForSearchType(aOpenStack,aSearchType); // look at this later
   
   return lError; 
 }
@@ -285,7 +289,6 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
       pChildNode->aCurrentState[lIndex - 3] = temp;
       pChildNode->aIsNodeValid = true;
     }
-
     break;
 
   case 'r':
@@ -296,8 +299,8 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
       pChildNode->aCurrentState[lIndex + 1] = temp;
       pChildNode->aIsNodeValid = true;
     }
-
     break;
+
   case 'd':
     if ((lIndex < 6) && (!badMove)) {
       temp = pChildNode->aCurrentState[lIndex];
@@ -305,8 +308,8 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
       pChildNode->aCurrentState[lIndex + 3] = temp;
       pChildNode->aIsNodeValid = true;
     }
-
     break;
+
   case 'l':
     if ((lIndex % 3 != 0) && (!badMove)) {
       temp = pChildNode->aCurrentState[lIndex];
@@ -314,19 +317,22 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
       pChildNode->aCurrentState[lIndex - 1] = temp;
       pChildNode->aIsNodeValid = true;
     }
-
     break;
   }
   pChildNode->aNodeHeuristics.aDepthCost = pCurrentNode->aNodeHeuristics.aDepthCost + 1;
 
 
-    if (aSearchType == SearchAlgorithm::AStarSearch)
+    if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MisplacedTiles)
     {
       pChildNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pChildNode, aGoalState) + pChildNode->aNodeHeuristics.aDepthCost; // Cost: g(n) + h(n), where h(n) is the misplaced tiles algorithm
     }
-    else if (aSearchType == SearchAlgorithm::BreadthFirstSearch)
+    else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::ManhattanDistance)
     {
-      pChildNode->aNodeHeuristics.aCost = pChildNode->aNodeHeuristics.aDepthCost; // Cost: g(n) only (smallest distance == breadth first search)
+      pChildNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pChildNode, aGoalState) + pChildNode->aNodeHeuristics.aDepthCost;
+    }
+    else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
+    {
+      pChildNode->aNodeHeuristics.aCost = pChildNode->aNodeHeuristics.aDepthCost;  // Cost: g(n) only (smallest distance == breadth first search)
     }
 
 
@@ -340,11 +346,26 @@ int main()
 	clock_t start, finish, total;
 	start = clock();
 
-	//DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::AStarSearch);   // for depth first search.. just sort the whole thing using distance at its max first...
-  //lFirstSearch.mGenerateDynamicTreeAndSearch();
+  DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::AStarSearch, Heuristic::MisplacedTiles);
+  DynamicSearchTreeComp lSecondSearch(SearchAlgorithm::AStarSearch, Heuristic::ManhattanDistance);
+  DynamicSearchTreeComp lThirdSearch(SearchAlgorithm::BreadthFirstSearch, Heuristic::Null);
+  DynamicSearchTreeComp lFourthSearch(SearchAlgorithm::DepthFirstSearch, Heuristic::Null);
 
-  //DynamicSearchTreeComp lSecondSearch(SearchAlgorithm::BreadthFirstSearch);
-  //lSecondSearch.mGenerateDynamicTreeAndSearch();
+  start = clock();
+  std::chrono::milliseconds timespan(1000);
+
+  lFirstSearch.mGenerateDynamicTreeAndSearch();
+  std::this_thread::sleep_for(timespan);
+
+  lSecondSearch.mGenerateDynamicTreeAndSearch();
+  std::this_thread::sleep_for(timespan);
+
+  lThirdSearch.mGenerateDynamicTreeAndSearch();
+  std::this_thread::sleep_for(timespan);
+
+  lFourthSearch.mGenerateDynamicTreeAndSearch();
+  std::this_thread::sleep_for(timespan);
+
 
 	finish = clock();
 	total = finish - start;

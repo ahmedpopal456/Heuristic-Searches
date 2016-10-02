@@ -16,5 +16,9 @@ public:
 
 
   int mComputeMisplacedTilesCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
-  int mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode*>& pOpenStack);
+  int mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
+
+
+  int mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode*>& pOpenStack, enum SearchAlgorithm pSearchType);
+
 };

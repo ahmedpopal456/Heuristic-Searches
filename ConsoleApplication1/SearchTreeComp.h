@@ -19,6 +19,14 @@ enum SearchAlgorithm
 
 }; SearchAlgorithm;
 
+enum Heuristic
+{
+  ManhattanDistance = 0,
+  MisplacedTiles    = 1,
+  Null              = 2
+
+}; Heuristic;
+
 
 class DynamicSearchTreeComp { // add an object computation at the constructor
 
@@ -28,6 +36,8 @@ class DynamicSearchTreeComp { // add an object computation at the constructor
     std::vector<DynamicSearchTreeNode*> aOpenStack;
   
     enum SearchAlgorithm            aSearchType;
+    enum Heuristic                  aHeuristicType;
+
     DynamicSearchTreeNode*          aRoot;
     InputOutputFileProcessor*       aIOProcessor;
     HeuristicComp*                  aHeuristicComp;
@@ -37,7 +47,7 @@ class DynamicSearchTreeComp { // add an object computation at the constructor
   
   public:
   
-    DynamicSearchTreeComp(enum SearchAlgorithm pSearchType);
+    DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType);
     ~DynamicSearchTreeComp();
   
     int mGenerateDynamicTreeAndSearch();

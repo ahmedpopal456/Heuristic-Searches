@@ -3,7 +3,7 @@
 #include "Node.h"
 #include "SearchTreeComp.h"
 
-int HeuristicComp::mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode*>& pSortedStack)
+int HeuristicComp::mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode*>& pSortedStack, enum SearchAlgorithm pSearchType)
 {
   DynamicSearchTreeNode* lTemp;
 
@@ -13,11 +13,23 @@ int HeuristicComp::mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode
     {
       for (int j = 0; j < (signed)pSortedStack.size() - 1; j++)
       {
-        if (pSortedStack[j]->aNodeHeuristics.aCost > pSortedStack[j + 1]->aNodeHeuristics.aCost)
+        if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch)
         {
-          lTemp = pSortedStack[j];
-          pSortedStack[j] = pSortedStack[j + 1];
-          pSortedStack[j + 1] = lTemp;
+          if (pSortedStack[j]->aNodeHeuristics.aCost > pSortedStack[j + 1]->aNodeHeuristics.aCost)
+          {
+            lTemp = pSortedStack[j];
+            pSortedStack[j] = pSortedStack[j + 1];
+            pSortedStack[j + 1] = lTemp;
+          }
+        }
+        else if(pSearchType == SearchAlgorithm::DepthFirstSearch)
+        {
+          if (pSortedStack[j]->aNodeHeuristics.aCost < pSortedStack[j + 1]->aNodeHeuristics.aCost)
+          {
+            lTemp = pSortedStack[j];
+            pSortedStack[j] = pSortedStack[j + 1];
+            pSortedStack[j + 1] = lTemp;
+          }
         }
       }
     }
@@ -34,11 +46,42 @@ int HeuristicComp::mComputeMisplacedTilesCost(DynamicSearchTreeNode* pNode, std:
 {
   int lComputedCost = 0;
 
-  for (int i = 0; i<(signed)pNode->aCurrentState.size(); i++)
+  for (size_t i = 0; i< pNode->aCurrentState.size(); i++)
   {
     if(pNode->aCurrentState[i] != 0 && pNode->aCurrentState[i] != pGoalState[i]) // Misplaced Tile Cost does not include the blank space as an additional cost
     {
       lComputedCost++;
+    }
+  }
+
+  return lComputedCost;
+}
+
+int HeuristicComp::mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState)
+{
+  int lComputedCost = 0;
+
+  for (size_t i = 0; i < pNode->aCurrentState.size(); i++)
+  {
+    int lCurrentIndex = i, lFinalIndex = 0;
+
+    int lTemp = pNode->aCurrentState.at(i);
+
+    if (lTemp != 0)
+    {
+      for (size_t j = 0; j < pGoalState.size(); j++)
+      {
+        if (pGoalState.at(j) == lTemp)
+        {
+          lFinalIndex = j;
+        }
+      }
+
+      div_t lCurrentTile, lFinalTile;
+      lCurrentTile = div(lCurrentIndex, 3);
+      lFinalTile = div(lFinalIndex, 3);
+
+      lComputedCost += ((std::abs(lCurrentTile.quot - lFinalTile.quot)) + (std::abs(lCurrentTile.rem - lFinalTile.rem)));
     }
   }
 
