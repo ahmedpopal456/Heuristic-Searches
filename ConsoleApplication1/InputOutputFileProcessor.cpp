@@ -52,10 +52,10 @@ int InputOutputFileProcessor::mReadAndAssessInput(std::vector<int>& pInputState,
   return 0;
 }
 
-void InputOutputFileProcessor::mOutputFileGenerator(DynamicSearchTreeNode* pNode)
+void InputOutputFileProcessor::mOutputFileGenerator(DynamicSearchTreeNode* pNode, std::string pFileName)
 {
 
-  ofstream fout("out.txt");
+  ofstream fout(pFileName);
   std::vector<DynamicSearchTreeNode*> lTemp;
 
   while (pNode != nullptr) 

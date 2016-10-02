@@ -21,9 +21,10 @@ enum SearchAlgorithm
 
 enum Heuristic
 {
-  ManhattanDistance = 0,
-  MisplacedTiles    = 1,
-  Null              = 2
+  ManhattanDistance     = 0,
+  MisplacedTiles        = 1,
+  MinMisplacedManhattan = 2,
+  Null                  = 3
 
 }; Heuristic;
 
@@ -44,10 +45,12 @@ class DynamicSearchTreeComp { // add an object computation at the constructor
   
     int aInternalError, aCurrentTreeDepth;
     bool aIsGoalState;
+
+    std::string aOutputFilePathName; 
   
   public:
   
-    DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType);
+    DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType, std::string pOutputFileName);
     ~DynamicSearchTreeComp();
   
     int mGenerateDynamicTreeAndSearch();
