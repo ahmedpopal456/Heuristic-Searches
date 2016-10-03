@@ -3,15 +3,16 @@
 #include "Node.h"
 #include "SearchTreeComp.h"
 
+
 int HeuristicComp::mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode*>& pSortedStack, enum SearchAlgorithm pSearchType)
 {
   DynamicSearchTreeNode* lTemp;
 
   try
   {
-    for (int i = 0; i < (signed)pSortedStack.size() - 1; i++)
+    for (size_t i = 0; i < pSortedStack.size() - 1; i++)
     {
-      for (int j = 0; j < (signed)pSortedStack.size() - 1; j++)
+      for (size_t j = 0; j < pSortedStack.size() - 1; j++)
       {
         if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch || pSearchType == SearchAlgorithm::BestFirstSearch)
         {

@@ -53,13 +53,11 @@ class DynamicSearchTreeComp { // add an object computation at the constructor
     DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType, std::string pOutputFileName);
     ~DynamicSearchTreeComp();
   
-    int mGenerateDynamicTreeAndSearch();
-    int mInsertBranches(DynamicSearchTreeNode* pCurrentNode);
-  
-    bool isEmpty() const { return aRoot == NULL; }
+    int mGeneralSearch();
+    int mHeuristicCostHandler(DynamicSearchTreeNode* pCurrentNode);
+    int mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurrentNode);
     void mGenerateRoot(std::vector<int>);
-  
-    void mHeuristicCostHandler(DynamicSearchTreeNode* pCurrentNode);
+
     void mAttemptMoveThreadHandler(DynamicSearchTreeNode* pCurrentNode, DynamicSearchTreeNode* pChildrenNodes, char pMove);
     void mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, DynamicSearchTreeNode* pChildNode, char pMove);
     int  mConfirmMoves(DynamicSearchTreeNode* pCurrentNode, DynamicSearchTreeNode* pFirstChild, DynamicSearchTreeNode* pSecondChild, DynamicSearchTreeNode* pThirdChild, DynamicSearchTreeNode* pFourthChild);

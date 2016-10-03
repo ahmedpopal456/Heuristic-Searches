@@ -14,7 +14,6 @@ public:
   HeuristicComp() {};
   ~HeuristicComp() {};
 
-
   int mComputeMisplacedTilesCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
   int mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
 
