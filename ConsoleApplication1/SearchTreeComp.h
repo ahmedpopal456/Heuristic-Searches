@@ -15,7 +15,7 @@ enum SearchAlgorithm
   AStarSearch = 0,
   BreadthFirstSearch = 1,
   DepthFirstSearch   = 2, 
-  BestFirstSearch    = 3
+  BestFirstSearch    = 3,
 
 }; SearchAlgorithm;
 

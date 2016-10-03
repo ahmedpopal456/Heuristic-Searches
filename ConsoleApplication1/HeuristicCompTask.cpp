@@ -13,7 +13,7 @@ int HeuristicComp::mSortOpenStackForSearchType(std::vector<DynamicSearchTreeNode
     {
       for (int j = 0; j < (signed)pSortedStack.size() - 1; j++)
       {
-        if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch)
+        if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch || pSearchType == SearchAlgorithm::BestFirstSearch)
         {
           if (pSortedStack[j]->aNodeHeuristics.aCost > pSortedStack[j + 1]->aNodeHeuristics.aCost)
           {
