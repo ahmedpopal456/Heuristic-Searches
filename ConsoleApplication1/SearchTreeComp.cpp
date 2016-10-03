@@ -86,23 +86,7 @@ void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
     }
   }
 
-  if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MisplacedTiles)
-  {
-    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
-  }
-  else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::ManhattanDistance)
-  {
-    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
-  }
-  else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MinMisplacedManhattan)
-  {
-    aRootNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(aRootNode, aGoalState) + aHeuristicComp->mComputeMisplacedTilesCost(aRootNode, aGoalState) + aRootNode->aNodeHeuristics.aDepthCost;
-  }
-  else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
-  {
-    aRootNode->aNodeHeuristics.aCost = aRootNode->aNodeHeuristics.aDepthCost;
-  }
-
+  mHeuristicCostHandler(aRootNode);
   std::fill(aRootNode->aChildren.begin(), aRootNode->aChildren.end(), nullptr);
   aRootNode->aParentNode = nullptr;
 
@@ -137,8 +121,8 @@ int DynamicSearchTreeComp::mInsertBranches(DynamicSearchTreeNode* pCurrentNode)
 
 void DynamicSearchTreeComp::mAttemptMoveThreadHandler(DynamicSearchTreeNode* pCurrentNode, DynamicSearchTreeNode* pChildNode, char pMove)
 {
-  auto lUpAttempt = std::bind(&DynamicSearchTreeComp::mAttemptToMove, this, pCurrentNode, pChildNode, pMove);
-  async(std::launch::async, lUpAttempt);
+  auto lAttempt = std::bind(&DynamicSearchTreeComp::mAttemptToMove, this, pCurrentNode, pChildNode, pMove);
+  async(std::launch::async, lAttempt);
 }
 
 
@@ -322,31 +306,34 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
     }
     break;
   }
-  pChildNode->aNodeHeuristics.aDepthCost = pCurrentNode->aNodeHeuristics.aDepthCost + 1;
-
-
-    if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MisplacedTiles) // make function 
-    {
-      pChildNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pChildNode, aGoalState) + pChildNode->aNodeHeuristics.aDepthCost; // Cost: g(n) + h(n), where h(n) is the misplaced tiles algorithm
-    }
-    else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::ManhattanDistance)
-    {
-      pChildNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pChildNode, aGoalState) + pChildNode->aNodeHeuristics.aDepthCost;
-    }
-    else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MinMisplacedManhattan)
-    {
-      pChildNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pChildNode, aGoalState) + aHeuristicComp->mComputeMisplacedTilesCost(pChildNode, aGoalState) + pChildNode->aNodeHeuristics.aDepthCost;
-    }
-    else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
-    {
-      pChildNode->aNodeHeuristics.aCost = pChildNode->aNodeHeuristics.aDepthCost;  // Cost: g(n) only (smallest distance == breadth first search)
-    }
-
+    pChildNode->aNodeHeuristics.aDepthCost = pCurrentNode->aNodeHeuristics.aDepthCost + 1;
+    mHeuristicCostHandler(pChildNode);
 
     std::fill(pChildNode->aChildren.begin(), pChildNode->aChildren.end(), nullptr);
     pChildNode->aParentNode = pCurrentNode;
 }
 
+void DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrentNode)
+{
+
+  if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MisplacedTiles) 
+  {
+    pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // Cost: g(n) + h(n), where h(n) is the misplaced tiles algorithm
+  }
+  else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::ManhattanDistance)
+  {
+    pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost;
+  }
+  else if (aSearchType == SearchAlgorithm::AStarSearch && aHeuristicType == Heuristic::MinMisplacedManhattan)
+  {
+    pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) + aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost;
+  }
+  else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
+  {
+    pCurrentNode->aNodeHeuristics.aCost = pCurrentNode->aNodeHeuristics.aDepthCost;  // Cost: g(n) only (smallest distance == breadth first search)
+  }
+
+}
 
 int main() 
 {
