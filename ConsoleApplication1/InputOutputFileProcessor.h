@@ -2,6 +2,10 @@
 
 #include <vector>
 
+//
+// Regular IO Processing class. Used to process input file, as well as to generate the output file
+// for all states
+//
 class DynamicSearchTreeNode; 
 
 class InputOutputFileProcessor

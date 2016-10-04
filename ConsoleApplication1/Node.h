@@ -3,6 +3,12 @@
 #include <vector>
 #include <iostream>
 
+//
+// This class basically consists of a node, which has a state, heuristical attributes
+// a valid check (to see if node is valid based on possible moves), a parent 
+// and 4 possible children 
+//
+
 class DynamicSearchTreeNode
 {
 

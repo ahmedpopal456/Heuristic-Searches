@@ -16,6 +16,10 @@
 
 using namespace std;
 
+//
+// Creating the Dynamic Tree for search and expansion. We also generate the 
+// input state, as well as the root in the constructor
+//
 DynamicSearchTreeComp::DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType, std::string pOutputFileName)
 {
   aInternalError = 0;
@@ -41,7 +45,14 @@ DynamicSearchTreeComp::~DynamicSearchTreeComp()
   delete aRoot; 
 }
 
-int DynamicSearchTreeComp::mGeneralSearch() {  // This is the general search 
+//
+// General Search Algorithm. Whenever we recursively enter the while loop, the 
+// node sorted at the lists' 0th index is deleted from the open stack, and is used as 
+// the current node. This node is then used to generate its children, after which the 
+// whole open list will be sorted again based on heuristics/search algorithm
+//
+
+int DynamicSearchTreeComp::mGeneralSearch() {  
 
   if (aInternalError == 0)
   {
@@ -75,6 +86,11 @@ int DynamicSearchTreeComp::mGeneralSearch() {  // This is the general search
   }
 }
 
+//
+// Function used to generate the root of the tree, before we head out into expanding the
+// state space
+//
+
 void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
 
   DynamicSearchTreeNode* aRootNode = new DynamicSearchTreeNode;
@@ -101,6 +117,14 @@ void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
 	}
 }
 
+//
+// The following function are used to create four new possible nodes for the current node we are analyzing.
+// A handler lauches four different threads to execute a function that will check if moving in that
+// direction is possible for the current state the puzzle is in. Depending on the results, we will 
+// delete dangling children, and keep the possible ones. Their costs will then be calculated, and 
+// the open list will be sorted again 
+//
+
 int DynamicSearchTreeComp::mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurrentNode)
 {
   int lError = 0; 
@@ -118,7 +142,7 @@ int DynamicSearchTreeComp::mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurr
   lMoveUp.join(); lMoveDown.join(); lMoveRight.join(); lMoveLeft.join(); 
 
   lError = mConfirmMoves(pCurrentNode, lFirstChild, lSecondChild, lThirdChild, lFourthChild);
-  lError = aHeuristicComp->mSortOpenStackForSearchType(aOpenStack,aSearchType); // look at this later
+  lError = aHeuristicComp->mSortOpenListForSearchType(aOpenStack,aSearchType); // look at this later
   
   return lError; 
 }
@@ -247,8 +271,8 @@ int DynamicSearchTreeComp::mConfirmMoves(DynamicSearchTreeNode* pCurrentNode, Dy
 
 void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, DynamicSearchTreeNode* pChildNode, char pMove) { // make all moves at once on threads
 
-  int lIndex, temp;
-  bool badMove = false;
+  int lIndex, lTemp;
+  bool lIsBacktracking = false;
 
   for (int i = 0; i<(signed)pCurrentNode->aCurrentState.size(); i++)
   {
@@ -260,63 +284,70 @@ void DynamicSearchTreeComp::mAttemptToMove(DynamicSearchTreeNode* pCurrentNode, 
   }
   pChildNode->aNodeHeuristics.aIndex = lIndex;
 
-  if (pCurrentNode->aNodeHeuristics.aDepthCost > 2)
+  if (pCurrentNode->aNodeHeuristics.aDepthCost > 2)  // To assure that no backtracking is done
   {
     if (lIndex == pCurrentNode->aParentNode->aNodeHeuristics.aIndex)
     {
-      badMove = true;
+      lIsBacktracking = true;
     }
   }
 
 
   switch (pMove)
   {
-  case 'u':
 
-    if ((lIndex > 2) && (!badMove))
+  case 'r':
+    if ((lIndex % 3 != 2) && (!lIsBacktracking))
     {
-      temp = pChildNode->aCurrentState[lIndex];
-      pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex - 3];
-      pChildNode->aCurrentState[lIndex - 3] = temp;
+      lTemp = pChildNode->aCurrentState[lIndex];
+      pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex + 1];
+      pChildNode->aCurrentState[lIndex + 1] = lTemp;
       pChildNode->aIsNodeValid = true;
     }
     break;
 
-  case 'r':
-    if ((lIndex % 3 != 2) && (!badMove))
+  case 'u':
+
+    if ((lIndex > 2) && (!lIsBacktracking))
     {
-      temp = pChildNode->aCurrentState[lIndex];
-      pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex + 1];
-      pChildNode->aCurrentState[lIndex + 1] = temp;
+      lTemp = pChildNode->aCurrentState[lIndex];
+      pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex - 3];
+      pChildNode->aCurrentState[lIndex - 3] = lTemp;
       pChildNode->aIsNodeValid = true;
     }
     break;
 
   case 'd':
-    if ((lIndex < 6) && (!badMove)) {
-      temp = pChildNode->aCurrentState[lIndex];
+    if ((lIndex < 6) && (!lIsBacktracking)) {
+      lTemp = pChildNode->aCurrentState[lIndex];
       pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex + 3];
-      pChildNode->aCurrentState[lIndex + 3] = temp;
+      pChildNode->aCurrentState[lIndex + 3] = lTemp;
       pChildNode->aIsNodeValid = true;
     }
     break;
 
   case 'l':
-    if ((lIndex % 3 != 0) && (!badMove)) {
-      temp = pChildNode->aCurrentState[lIndex];
+    if ((lIndex % 3 != 0) && (!lIsBacktracking)) {
+      lTemp = pChildNode->aCurrentState[lIndex];
       pChildNode->aCurrentState[lIndex] = pChildNode->aCurrentState[lIndex - 1];
-      pChildNode->aCurrentState[lIndex - 1] = temp;
+      pChildNode->aCurrentState[lIndex - 1] = lTemp;
       pChildNode->aIsNodeValid = true;
     }
     break;
   }
     pChildNode->aNodeHeuristics.aDepthCost = pCurrentNode->aNodeHeuristics.aDepthCost + 1;
-    aInternalError = mHeuristicCostHandler(pChildNode);
-
     std::fill(pChildNode->aChildren.begin(), pChildNode->aChildren.end(), nullptr);
     pChildNode->aParentNode = pCurrentNode;
-}
 
+    aInternalError = mHeuristicCostHandler(pChildNode);
+}
+//
+//
+
+//
+// This function handles everything that pertains to heuristic calculations, depending on the
+// search type and the heuristic at use
+//
 int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrentNode)
 {
 
@@ -325,15 +356,23 @@ int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrent
     if (aSearchType == SearchAlgorithm::AStarSearch)
       pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // Cost: g(n) + h(n), where h(n) is the misplaced tiles algorithm
     else if (aSearchType == SearchAlgorithm::BestFirstSearch)
-      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState);
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState);// Cost:  h(n), where h(n) is the misplaced tiles algorithm
   }
 
   else if (aHeuristicType == Heuristic::ManhattanDistance)
   {
     if (aSearchType == SearchAlgorithm::AStarSearch)
-      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost;
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // "" ...
     else if (aSearchType == SearchAlgorithm::BestFirstSearch)
       pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState);
+  }
+
+  else if (aHeuristicType == Heuristic::SumOfPermutationInv)
+  {
+    if (aSearchType == SearchAlgorithm::AStarSearch)
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeSumOfPermutationInversionCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // "" ...
+    else if (aSearchType == SearchAlgorithm::BestFirstSearch)
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeSumOfPermutationInversionCost(pCurrentNode, aGoalState);
   }
 
   else if (aHeuristicType == Heuristic::MinMisplacedManhattan)
@@ -341,7 +380,7 @@ int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrent
     if (aSearchType == SearchAlgorithm::AStarSearch)
     {
       bool lMinIsManhattan = (aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) < aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost);
-      pCurrentNode->aNodeHeuristics.aCost = (lMinIsManhattan ? aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState): aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState)) + pCurrentNode->aNodeHeuristics.aDepthCost;
+      pCurrentNode->aNodeHeuristics.aCost = (lMinIsManhattan ? aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) : aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState)) + pCurrentNode->aNodeHeuristics.aDepthCost;
     }
     else if (aSearchType == SearchAlgorithm::BestFirstSearch)
     {
@@ -350,7 +389,7 @@ int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrent
     }
   }
 
-  else if (aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch)
+  else if ((aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch) && aHeuristicType == Heuristic::Null)
   {
     pCurrentNode->aNodeHeuristics.aCost = pCurrentNode->aNodeHeuristics.aDepthCost;  // Cost: g(n) only (smallest distance == breadth first search)
   }
@@ -366,7 +405,24 @@ int main()
 {
 	clock_t start, finish, total;
 	start = clock();
-  
+
+  DynamicSearchTreeComp lZeroSearch(SearchAlgorithm::AStarSearch, Heuristic::SumOfPermutationInv, "astar_permutation_inv.txt");
+  DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::BestFirstSearch, Heuristic::SumOfPermutationInv, "bestfirst_permutation_inv.txt");
+
+  start = clock();
+  cout << " Dynamic AStar Search with Sum of Permutation Heuristic is Starting ..." << "\n\n";
+  lZeroSearch.mGeneralSearch();
+  finish = clock();
+  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+
+  start = clock();
+  cout << " Dynamic BestFirst Search with Sum of Permutation Heuristic is Starting ..." << "\n\n";
+  lFirstSearch.mGeneralSearch();
+  finish = clock();
+  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  // We create searches for all possibilities 
+
+  /*
   DynamicSearchTreeComp lZeroSearch(SearchAlgorithm::AStarSearch, Heuristic::MinMisplacedManhattan, "astar_min.txt");
   DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::AStarSearch, Heuristic::MisplacedTiles, "astar_misplaced.txt");
   DynamicSearchTreeComp lSecondSearch(SearchAlgorithm::AStarSearch, Heuristic::ManhattanDistance, "astar_manhattan");
@@ -377,9 +433,6 @@ int main()
 
   DynamicSearchTreeComp lSixthSearch(SearchAlgorithm::BreadthFirstSearch, Heuristic::Null, "bfs.txt");
   DynamicSearchTreeComp lSeventhSearch(SearchAlgorithm::DepthFirstSearch, Heuristic::Null, "dfs.txt");
-
-
-  std::chrono::milliseconds timespan(1000);
 
   start = clock();
   cout << " Dynamic AStar Search with Min Heuristic is Starting ..." << "\n\n";
@@ -428,5 +481,7 @@ int main()
   lSeventhSearch.mGeneralSearch();
   finish = clock();
   cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  */
+
 
 }

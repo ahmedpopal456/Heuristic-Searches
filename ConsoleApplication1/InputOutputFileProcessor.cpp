@@ -12,6 +12,10 @@ using namespace std;
 InputOutputFileProcessor::InputOutputFileProcessor() {}
 InputOutputFileProcessor::~InputOutputFileProcessor() {}
 
+//  
+// The two following functions are self-explanatory
+// 
+
 int InputOutputFileProcessor::mReadAndAssessInput(std::vector<int>& pInputState, std::vector<int>& pGoalState, std::string pFilePath)
 {
   int       	lItemnum = 0;
