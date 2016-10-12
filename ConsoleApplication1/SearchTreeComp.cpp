@@ -20,6 +20,7 @@ using namespace std;
 // Creating the Dynamic Tree for search and expansion. We also generate the 
 // input state, as well as the root in the constructor
 //
+
 DynamicSearchTreeComp::DynamicSearchTreeComp(enum SearchAlgorithm pSearchType, enum Heuristic pHeuristicType, std::string pOutputFileName)
 {
   aInternalError = 0;
@@ -60,13 +61,37 @@ int DynamicSearchTreeComp::mGeneralSearch() {
 
     if (aRoot == nullptr) return -1; 
 
-    while (aOpenStack.size() > 0) 
+    if (aRoot->aCurrentState == aGoalState)
     {
-      aCurrentNode = aOpenStack.front(); 
-      aOpenStack.erase(aOpenStack.begin());
+      cout << "Already at Goal State" << "\n";
+      return 0;
+    }
 
-      aInternalError = mAddChildrenAndSortStack(aCurrentNode);
+    while (aOpenStack.size() > 0)
+    {
+      aCurrentNode = aOpenStack.front();
+      aInternalError = mAddChildren(aCurrentNode);
 
+      //
+      // Check if current node state is in the closed stack after pushing current node
+      // 
+
+      aClosedStack.push_back(aCurrentNode);
+
+      for (size_t j = 0; j < aClosedStack.size(); j++)
+      {
+        if (aOpenStack.front()->aCurrentState == aClosedStack[j]->aCurrentState)
+        {
+          //
+          // If so, then erase
+          //
+          aOpenStack.erase(aOpenStack.begin());
+          j = 0;
+        }
+      }
+      //
+      // Display current depth
+      // 
       if (aCurrentNode->aNodeHeuristics.aDepthCost > aCurrentTreeDepth) 
       {
         aCurrentTreeDepth = aCurrentNode->aNodeHeuristics.aDepthCost;
@@ -125,7 +150,7 @@ void DynamicSearchTreeComp::mGenerateRoot(vector<int> state) {
 // the open list will be sorted again 
 //
 
-int DynamicSearchTreeComp::mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurrentNode)
+int DynamicSearchTreeComp::mAddChildren(DynamicSearchTreeNode* pCurrentNode)
 {
   int lError = 0; 
 
@@ -142,7 +167,7 @@ int DynamicSearchTreeComp::mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurr
   lMoveUp.join(); lMoveDown.join(); lMoveRight.join(); lMoveLeft.join(); 
 
   lError = mConfirmMoves(pCurrentNode, lFirstChild, lSecondChild, lThirdChild, lFourthChild);
-  lError = aHeuristicComp->mSortOpenListForSearchType(aOpenStack,aSearchType); // look at this later
+  lError = aHeuristicComp->mSortOpenListForSearchType(aOpenStack, 0, aOpenStack.size()-1,aSearchType); // look at this later
   
   return lError; 
 }
@@ -367,28 +392,32 @@ int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrent
       pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState);
   }
 
-  else if (aHeuristicType == Heuristic::SumOfPermutationInv)
+  else if (aHeuristicType == Heuristic::MaxSumofPermutationManhattan)
   {
     if (aSearchType == SearchAlgorithm::AStarSearch)
-      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeSumOfPermutationInversionCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // "" ...
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMaxManhattanSumOfPermutationInversionCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; // "" ...
     else if (aSearchType == SearchAlgorithm::BestFirstSearch)
-      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeSumOfPermutationInversionCost(pCurrentNode, aGoalState);
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMaxManhattanSumOfPermutationInversionCost(pCurrentNode, aGoalState);
   }
 
   else if (aHeuristicType == Heuristic::MinMisplacedManhattan)
   {
     if (aSearchType == SearchAlgorithm::AStarSearch)
     {
-      bool lMinIsManhattan = (aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) < aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost);
-      pCurrentNode->aNodeHeuristics.aCost = (lMinIsManhattan ? aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) : aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState)) + pCurrentNode->aNodeHeuristics.aDepthCost;
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMinManhattanMisplacedTiles(pCurrentNode, aGoalState) + pCurrentNode->aNodeHeuristics.aDepthCost; 
     }
     else if (aSearchType == SearchAlgorithm::BestFirstSearch)
     {
-      bool lMinIsManhattan = (aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) < aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState));
-      pCurrentNode->aNodeHeuristics.aCost = (lMinIsManhattan ? aHeuristicComp->mComputeManhattanDistanceCost(pCurrentNode, aGoalState) : aHeuristicComp->mComputeMisplacedTilesCost(pCurrentNode, aGoalState));
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeMinManhattanMisplacedTiles(pCurrentNode, aGoalState);
     }
   }
-
+  else if (aHeuristicType == Heuristic::OverstimatedManhattan)
+  {
+    if(aSearchType == SearchAlgorithm::BestFirstSearch)
+    {
+      pCurrentNode->aNodeHeuristics.aCost = aHeuristicComp->mComputeOverstimatedHeuristic(pCurrentNode, aGoalState);
+    }
+  }
   else if ((aSearchType == SearchAlgorithm::BreadthFirstSearch || aSearchType == SearchAlgorithm::DepthFirstSearch) && aHeuristicType == Heuristic::Null)
   {
     pCurrentNode->aNodeHeuristics.aCost = pCurrentNode->aNodeHeuristics.aDepthCost;  // Cost: g(n) only (smallest distance == breadth first search)
@@ -403,85 +432,85 @@ int DynamicSearchTreeComp::mHeuristicCostHandler(DynamicSearchTreeNode* pCurrent
 
 int main() 
 {
-	clock_t start, finish, total;
-	start = clock();
-
-  DynamicSearchTreeComp lZeroSearch(SearchAlgorithm::AStarSearch, Heuristic::SumOfPermutationInv, "astar_permutation_inv.txt");
-  DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::BestFirstSearch, Heuristic::SumOfPermutationInv, "bestfirst_permutation_inv.txt");
-
-  start = clock();
-  cout << " Dynamic AStar Search with Sum of Permutation Heuristic is Starting ..." << "\n\n";
-  lZeroSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
-
-  start = clock();
-  cout << " Dynamic BestFirst Search with Sum of Permutation Heuristic is Starting ..." << "\n\n";
-  lFirstSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
-  // We create searches for all possibilities 
-
-  /*
+  clock_t lStart,lFinish;
+  
   DynamicSearchTreeComp lZeroSearch(SearchAlgorithm::AStarSearch, Heuristic::MinMisplacedManhattan, "astar_min.txt");
   DynamicSearchTreeComp lFirstSearch(SearchAlgorithm::AStarSearch, Heuristic::MisplacedTiles, "astar_misplaced.txt");
   DynamicSearchTreeComp lSecondSearch(SearchAlgorithm::AStarSearch, Heuristic::ManhattanDistance, "astar_manhattan");
+  DynamicSearchTreeComp lThirdSearch(SearchAlgorithm::AStarSearch, Heuristic::MaxSumofPermutationManhattan, "astar_max_man_permutation_inv.txt");
+  DynamicSearchTreeComp lFourthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::MinMisplacedManhattan, "bfs_min.txt");
+  DynamicSearchTreeComp lFifthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::MisplacedTiles, "bfs_misplaced.txt");
+  DynamicSearchTreeComp lSixthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::ManhattanDistance, "bfs_manhattan");
+  DynamicSearchTreeComp lSeventhSearch(SearchAlgorithm::BestFirstSearch, Heuristic::MaxSumofPermutationManhattan, "bfs_max_man_permutation_inv.txt");
+  DynamicSearchTreeComp lEightSearch(SearchAlgorithm::BreadthFirstSearch, Heuristic::Null, "breadth_first");
+  DynamicSearchTreeComp lNinthSearch(SearchAlgorithm::DepthFirstSearch, Heuristic::Null, "depth-first");
+  DynamicSearchTreeComp lTenthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::OverstimatedManhattan, "bfs_overestimated_manhattan");
 
-  DynamicSearchTreeComp lThirdSearch(SearchAlgorithm::BestFirstSearch, Heuristic::MinMisplacedManhattan, "bestfirst_min.txt");
-  DynamicSearchTreeComp lFourthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::MisplacedTiles, "bestfirst_misplaced.txt");
-  DynamicSearchTreeComp lFifthSearch(SearchAlgorithm::BestFirstSearch, Heuristic::ManhattanDistance, "bestfirst_manhattan");
-
-  DynamicSearchTreeComp lSixthSearch(SearchAlgorithm::BreadthFirstSearch, Heuristic::Null, "bfs.txt");
-  DynamicSearchTreeComp lSeventhSearch(SearchAlgorithm::DepthFirstSearch, Heuristic::Null, "dfs.txt");
-
-  start = clock();
-  cout << " Dynamic AStar Search with Min Heuristic is Starting ..." << "\n\n";
-  lZeroSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
-
-  start = clock();
-  cout << " Dynamic AStar Search with MisplacedTiles Heuristic is Starting ..." << "\n\n";
-  lFirstSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
-
-  start = clock();
-  cout << " Dynamic AStar Search with Manhattan Dis. Heuristic is Starting ..." << "\n\n";
+  lStart = clock(); 
+  cout << " Dynamic AStar Search with Manhattan Dis. Heuristic is starting ..." << "\n\n";
   lSecondSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
-  start = clock();
-  cout << " Best First Search with Min Heuristic is Starting ..." << "\n\n";
+  lStart = clock();
+  cout << " Dynamic AStar Search with Max of Manhattan and Sum of Permutation Heuristic is starting ..." << "\n\n";
   lThirdSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
-  start = clock();
-  cout << " Best First Search with Manhattan Dis. Heuristic is Starting ..." << "\n\n";
-  lFifthSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  lStart = clock();
+  cout << " Dynamic AStar Search with Min of Manhattan and Misplaced Tiles Heuristic is lStarting ..." << "\n\n";
+  lZeroSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
-  start = clock();
-  cout << " Best First Search with MisplacedTiles Heuristic is Starting ..." << "\n\n";
-  lFourthSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  lStart = clock();
+  cout << " Dynamic AStar Search with MisplacedTiles Heuristic is starting ..." << "\n\n";
+  lFirstSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
-  start = clock();
-  cout << " Dynamic BFS is Starting ..." << "\n\n";
+
+  lStart = clock();
+  cout << " Dynamic Best-First Search with Manhattan Dis. Heuristic is starting ..." << "\n\n";
   lSixthSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
-  start = clock();
-  cout << " Dynamic DFS is Starting ..." << "\n\n";
+  lStart = clock();
+  cout << " Dynamic Best-First Search with Max of Manhattan and Sum of Permutation Heuristic is starting ..." << "\n\n";
   lSeventhSearch.mGeneralSearch();
-  finish = clock();
-  cout << "Time: " << (finish - start) << " msecs" << "\n\n";
-  */
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
+  lStart = clock();
+  cout << " Dynamic Best-First Search with Min of Manhattan and Misplaced Tiles Heuristic is lStarting ..." << "\n\n";
+  lFourthSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
+
+  lStart = clock();
+  cout << " Dynamic Best-First Search with MisplacedTiles Heuristic is starting ..." << "\n\n";
+  lFifthSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
+ 
+  lStart = clock();
+  cout << " Dynamic Best-First Search with Overestimated Heuristic is starting ..." << "\n\n";
+  lTenthSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
+
+  lStart = clock();
+  cout << " Breadth-First Search Is Starting ..." << "\n\n";
+  lEightSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
+ 
+  lStart = clock();
+  cout << " Depth-First Search Is Starting ..." << "\n\n";
+  lNinthSearch.mGeneralSearch();
+  lFinish = clock();
+  cout << "Time: " << (lFinish - lStart) << " msecs" << "\n\n";
 
 }

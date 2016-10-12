@@ -20,10 +20,18 @@ public:
   HeuristicComp() {};
   ~HeuristicComp() {};
 
-  int mComputeMisplacedTilesCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
-  int mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
-  int mComputeSumOfPermutationInversionCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);
+  //
+  // All Five Implemented Heuristics 
+  //
+  int mComputeMisplacedTilesCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);                                          //   ADMISSIBLE
+  int mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);                                       //   ADMISSIBLE
+  int mComputeMinManhattanMisplacedTiles(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);                                  //   ADMISSIBLE
+  int mComputeMaxManhattanSumOfPermutationInversionCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);                   //   ADMISSIBLE
+  int mComputeOverstimatedHeuristic(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState);                                       // NON-ADMISSIBLE
 
-  int mSortOpenListForSearchType(std::vector<DynamicSearchTreeNode*>& pOpenStack, enum SearchAlgorithm pSearchType);
+  //
+  // Function that sorts the open stack, based on the type of search algorithm
+  //
+  int mSortOpenListForSearchType(std::vector<DynamicSearchTreeNode*>& pOpenStack, int pLeft, int pRight, enum SearchAlgorithm pSearchType);  
 
 };

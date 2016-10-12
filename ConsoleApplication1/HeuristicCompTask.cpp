@@ -4,43 +4,72 @@
 #include "SearchTreeComp.h"
 
 //
-// This algorithm sorts the open list which consists of nodes that each have a cost associated to them 
+// This function uses the quick-sort algorithm to sort the list which consists of nodes that each have a cost associated to them 
 // and that have previously not been visited. These nodes are sorted depending on the search algorithms
 // and heuristics used... For the AStar and BestFirst searches, we look at sorting the stack in such a way
 // that the node with the smallest cost comes first... for the BFS and DFS, we sort the node based on the 
 // distance of each node from the root (BFS - smallest distance, DFS - greatest distance)
 //
-
-int HeuristicComp::mSortOpenListForSearchType(std::vector<DynamicSearchTreeNode*>& pSortedStack, enum SearchAlgorithm pSearchType)
+int HeuristicComp::mSortOpenListForSearchType(std::vector<DynamicSearchTreeNode*>& pSortedStack, int pLeft, int pRight, enum SearchAlgorithm pSearchType)
 {
   DynamicSearchTreeNode* lTemp;
 
   try
   {
-    for (size_t i = 0; i < pSortedStack.size() - 1; i++)
+    int lLeft = pLeft, 
+        lRight = pRight;
+
+    int lPivot = pSortedStack.at((lLeft + lRight) / 2)->aNodeHeuristics.aCost;
+
+    //
+    // Partitioning Algorithm
+    //
+
+    while (lLeft <= lRight)
     {
-      for (size_t j = 0; j < pSortedStack.size() - 1; j++)
+      if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BestFirstSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch)
       {
-        if (pSearchType == SearchAlgorithm::AStarSearch || pSearchType == SearchAlgorithm::BreadthFirstSearch || pSearchType == SearchAlgorithm::BestFirstSearch)
+        while (pSortedStack.at(lLeft)->aNodeHeuristics.aCost < lPivot)
         {
-          if (pSortedStack[j]->aNodeHeuristics.aCost > pSortedStack[j + 1]->aNodeHeuristics.aCost)
-          {
-            lTemp = pSortedStack[j];
-            pSortedStack[j] = pSortedStack[j + 1];
-            pSortedStack[j + 1] = lTemp;
-          }
+          lLeft++;
         }
-        else if(pSearchType == SearchAlgorithm::DepthFirstSearch)
+
+        while (pSortedStack.at(lRight)->aNodeHeuristics.aCost > lPivot)
         {
-          if (pSortedStack[j]->aNodeHeuristics.aCost < pSortedStack[j + 1]->aNodeHeuristics.aCost)
-          {
-            lTemp = pSortedStack[j];
-            pSortedStack[j] = pSortedStack[j + 1];
-            pSortedStack[j + 1] = lTemp;
-          }
+          lRight--;
         }
       }
-    }
+      else if (pSearchType == SearchAlgorithm::DepthFirstSearch)
+      {
+        while (pSortedStack.at(lLeft)->aNodeHeuristics.aCost > lPivot)
+        {
+          lLeft++;
+        }
+
+        while (pSortedStack.at(lRight)->aNodeHeuristics.aCost < lPivot)
+        {
+          lRight--;
+        }
+      }
+
+      if (lLeft <= lRight) 
+      {
+        lTemp = pSortedStack.at(lLeft);
+        pSortedStack.at(lLeft) = pSortedStack.at(lRight);
+        pSortedStack.at(lRight) = lTemp;
+        lLeft++;
+        lRight--;
+      }
+    };
+    //
+    // Recursively Sort the List
+    //
+    if (pLeft < lRight)
+      mSortOpenListForSearchType(pSortedStack, pLeft, lRight, pSearchType);
+
+    if (pRight < lLeft)
+      mSortOpenListForSearchType(pSortedStack, lLeft, pRight, pSearchType);
+
     return 0; 
   }
   catch (...)
@@ -102,13 +131,28 @@ int HeuristicComp::mComputeManhattanDistanceCost(DynamicSearchTreeNode* pNode, s
   return lComputedCost;
 }
 
-
-// This Heuristic calculates the Sum of Permutation Inversions for each numbered tile, by counting
-// how many tiles on its right should be on its left in the goal state.  
-
-int HeuristicComp::mComputeSumOfPermutationInversionCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState)
+// Algorithm computes both Manhattan Distance and Misplaced Tiles cost and returns
+// the one with the smallest cost, as per the guidelines
+int HeuristicComp::mComputeMinManhattanMisplacedTiles(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState)
 {
-  int lComputedCost = 0;
+  int lComputedManhattanCost = 0, lComputedMisplacedTilesCost = 0;
+
+  lComputedManhattanCost = mComputeManhattanDistanceCost(pNode, pGoalState);
+  lComputedMisplacedTilesCost = mComputeMisplacedTilesCost(pNode, pGoalState);
+
+  if (lComputedManhattanCost < lComputedMisplacedTilesCost)
+    return lComputedManhattanCost;
+  else
+    return lComputedMisplacedTilesCost;
+}
+
+// This Heuristic calculates the Sum oF Permutation Inversion algorithm
+// for each numbered tile, by counting how many tiles on its right should be on its left 
+// as well as the Manhattan Distance. It returns the largest cost between both
+
+int HeuristicComp::mComputeMaxManhattanSumOfPermutationInversionCost(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState)
+{
+  int lComputedSumOfPerCost = 0, lComputedManhattanDrive = 0;
 
   for (size_t i = 0; i < pNode->aCurrentState.size(); i++)
   {
@@ -131,23 +175,23 @@ int HeuristicComp::mComputeSumOfPermutationInversionCost(DynamicSearchTreeNode* 
     else
       continue; 
 
-    //
+    // 
     // Check if there is something at the right side of the current state 
     // index, or at the left of the goal state index/ If so, then we see how many tiles
-    //  on the right side of the current index, should actually be on its left
+    // on the right side of the current index, should actually be on its left
     // 
     
     if (lFinalIndex != 0 && lCurrentIndex != (static_cast<int>(pNode->aCurrentState.size() - 1)))
     {
       std::vector<int>   lLeftOfTileInGoalState(pGoalState.begin(), pGoalState.begin() + lFinalIndex);
-      std::vector<int>   lRightOfTileInCurrentState(pNode->aCurrentState.begin() + lCurrentIndex +1 , pNode->aCurrentState.end());
+      std::vector<int>   lRightOfTileInCurrentState(pNode->aCurrentState.begin() + lCurrentIndex + 1, pNode->aCurrentState.end());
 
       for (size_t l = 0; l < lRightOfTileInCurrentState.size(); l++)
       {
         for (size_t k = 0; k < lLeftOfTileInGoalState.size(); k++)
         {
-          if(lLeftOfTileInGoalState[k] == lRightOfTileInCurrentState[l])
-            lComputedCost += 1; 
+          if (lLeftOfTileInGoalState[k] == lRightOfTileInCurrentState[l])
+            lComputedSumOfPerCost += 1;
         }
       }
     }
@@ -155,5 +199,22 @@ int HeuristicComp::mComputeSumOfPermutationInversionCost(DynamicSearchTreeNode* 
       continue; 
   }
    
-  return lComputedCost;
+  lComputedManhattanDrive = mComputeManhattanDistanceCost(pNode, pGoalState);
+
+  if (lComputedSumOfPerCost > lComputedManhattanDrive)
+    return lComputedSumOfPerCost;
+  else
+    return lComputedManhattanDrive;
+}
+
+//
+// This heuristic is a NON-ADMISSIBLE one and is an overestimation of the manhattan distance where
+// cost = alpha * h(n), where h(n) is the max of the manhattan distance/ sum of permutation inversions
+// algorithm and alpha is a very large number ,ideally infinity, but in this case 5000
+// 
+
+int HeuristicComp::mComputeOverstimatedHeuristic(DynamicSearchTreeNode* pNode, std::vector<int>& pGoalState)
+{
+  int lComputedCost = 5000 * (mComputeMaxManhattanSumOfPermutationInversionCost(pNode, pGoalState));
+  return  lComputedCost;
 }

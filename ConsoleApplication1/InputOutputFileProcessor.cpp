@@ -59,29 +59,35 @@ int InputOutputFileProcessor::mReadAndAssessInput(std::vector<int>& pInputState,
 void InputOutputFileProcessor::mOutputFileGenerator(DynamicSearchTreeNode* pNode, std::string pFileName)
 {
 
-  ofstream fout(pFileName);
-  std::vector<DynamicSearchTreeNode*> lTemp;
-
-  while (pNode != nullptr) 
+  try
   {
-    lTemp.push_back(pNode);
-    pNode = pNode->aParentNode;
-  }
-  fout << "Initial State" << endl;
+    ofstream fout(pFileName);
+    std::vector<DynamicSearchTreeNode*> lTemp;
 
-  for (int j = lTemp.size() - 1; j >= 0; j--)
-  {
-    for (int i = 0; i<(signed)lTemp[j]->aCurrentState.size(); i++) 
+    while (pNode != nullptr)
     {
-      if (lTemp[j]->aCurrentState[i] == 0)
-        fout << "B ";
-      else
-        fout << lTemp[j]->aCurrentState[i] << " ";
-      if (i % 3 == 2) fout << endl;
+      lTemp.push_back(pNode);
+      pNode = pNode->aParentNode;
     }
-    fout << endl;
-  }
-  fout << "Goal State" << endl;
-  fout.close();
+    fout << "Initial State" << endl;
 
+    for (int j = lTemp.size() - 1; j >= 0; j--)
+    {
+      for (int i = 0; i < (signed)lTemp[j]->aCurrentState.size(); i++)
+      {
+        if (lTemp[j]->aCurrentState[i] == 0)
+          fout << "B ";
+        else
+          fout << lTemp[j]->aCurrentState[i] << " ";
+        if (i % 3 == 2) fout << endl;
+      }
+      fout << endl;
+    }
+    fout << "Goal State" << endl;
+    fout.close();
+  }
+  catch (...)
+  {
+    cout << "Output file could not be generated. Please check filepath name provided";
+  }
 }

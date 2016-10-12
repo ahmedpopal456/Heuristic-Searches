@@ -1,5 +1,5 @@
 #pragma once
-
+#include<map>
 class InputOutputFileProcessor;
 class DynamicSearchTreeNode;
 class HeuristicComp;
@@ -13,7 +13,7 @@ class HeuristicComp;
 
 enum SearchAlgorithm
 {
-  AStarSearch = 0,
+  AStarSearch        = 0,
   BreadthFirstSearch = 1,
   DepthFirstSearch   = 2, 
   BestFirstSearch    = 3,
@@ -22,11 +22,12 @@ enum SearchAlgorithm
 
 enum Heuristic
 {
-  ManhattanDistance     = 0,
-  MisplacedTiles        = 1,
-  MinMisplacedManhattan = 2,
-  SumOfPermutationInv   = 3,
-  Null                  = 4
+  ManhattanDistance                = 0,
+  MisplacedTiles                   = 1,
+  MinMisplacedManhattan            = 2,
+  MaxSumofPermutationManhattan     = 3,
+  OverstimatedManhattan            = 4,
+  Null                             = 5
 
 }; Heuristic;
 
@@ -35,10 +36,11 @@ class DynamicSearchTreeComp {
 
   private:
   
-    std::vector<int> aInput, aGoalState;             // Input and Goal States
-    std::vector<DynamicSearchTreeNode*> aOpenStack;  // The Open List
+    std::vector<int> aInput, aGoalState;                           // Input and Goal States
+    std::vector<DynamicSearchTreeNode*> aOpenStack;                // The Open List
+    std::vector<DynamicSearchTreeNode*> aClosedStack;
   
-    enum SearchAlgorithm            aSearchType;     // Search Type and Heuristic Type 
+    enum SearchAlgorithm            aSearchType;                   // Search Type and Heuristic Type 
     enum Heuristic                  aHeuristicType;
 
     DynamicSearchTreeNode*          aRoot;
@@ -57,7 +59,7 @@ class DynamicSearchTreeComp {
   
     int mGeneralSearch();                            
 
-    int  mAddChildrenAndSortStack(DynamicSearchTreeNode* pCurrentNode);
+    int  mAddChildren(DynamicSearchTreeNode* pCurrentNode);
     void mGenerateRoot(std::vector<int>);
 
     int  mHeuristicCostHandler(DynamicSearchTreeNode* pCurrentNode);
