@@ -12,4 +12,4 @@ based on the 8-Puzzle Problem. Input is a text file of the following format:  1 
 all the moves the solution went through to get to the final solution 
 
 
-* Note that all of the searches implement heuristics, as they should not 
+* Note that not all of the searches implement heuristics, as they should not 
